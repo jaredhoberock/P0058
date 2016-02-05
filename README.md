@@ -1,9 +1,8 @@
-This is the source of the executors paper Nvidia will send to the
-meeting of the ISO C++ standardization committee in May, 2015.
+This is the source of the ISO C++ paper P0058.
 
 Build the paper with
 
-    $ pandoc --number-sections -H header.tex executors.md -o executors.pdf
+    $ pandoc --number-sections -H header.tex P0058_an_interface_for_abstracting_execution.md -o P0058_an_interface_for_abstracting_execution.pdf
 
 or simply
 
@@ -11,5 +10,5 @@ or simply
 
 Alternate Word and HTML formats can be generated with:
 
-    $ make executors.docx
-    $ make executors.html
+    $ make P0058_an_interface_for_abstracting_execution.docx
+    $ make P0058_an_interface_for_abstracting_execution.html
