@@ -765,6 +765,31 @@ can in general be indexed multidimensionally. In other words, hierarchy and
 multidimensionality are orthogonal features. A given executor can choose to
 support one, both, or neither.
 
+## \color{ForestGreen} Fire-and-Forget
+
+\color{ForestGreen}
+
+Some creators of work may be uninterested in the work's outcome: they simply
+with to "fire off" some work and then "forget" about it. In these cases,
+creators of work do not require synchronizing with the work's completion.
+For example, a deferred resource deallocation scheme might present clients
+with an asynchronous interface. Behind the interface, an executor might
+create asynchronous agents to execute the destructors of resources
+deallocated through the interface. Requiring a future for each
+deallocation request would burden the executor with the wasteful construction
+of superfluous and potentially expensive synchronization primitives.
+
+Our proposal allows executors to advertise their asynchronous operations as
+"fire-and-forget" by allowing them to return `void` from such operations.
+Instead of returning an instance of a type that fulfills the `Future` concept,
+`async_execute()` and `then_execute()` would return `void`. For such
+executors, the associated `future<T>` template always yields `void`
+when instantiated for any given `T`. Of course, it is always possible
+for the client to synchronize with work created this way by introducing
+their own synchronization primitives into the program.
+
+\color{Black}
+
 ## Associated Typedefs and Templates
 
 `executor_traits` exposes a number of associated member types and templates
@@ -1237,18 +1262,6 @@ executor design would likely include additional functionality, both for
 convenience and to broaden its scope. In this appendix, we identify features
 which may be valuable in a complete design and thus may warrant future work.
 
-## Fire-and-forget
-
-Our proposed design does not attempt to incorporate a "fire-and-forget" mode of
-asynchronous execution which would not need to synchronize with the completion
-of tasks submitted to the executor. One way to support fire-and-forget as well
-as fire-and-remember executors within the same programming model would be to
-generalize the type `future<T>` of the asynchronous return result. Such a model
-would employ the same mechanism by which allocators customize the `pointer`
-type returned by the `allocate()` function. For fire-and-forget executors, this
-type could be `void`. The same scheme could also accomodate executors providing
-completion tokens instead of full-fledged futures.
-
 ## Continuation Interface
 
 Our proposal's handling of continuations in `future_traits::then` and
@@ -1457,6 +1470,7 @@ requiring that all executors use a particular shape or index type.
     0. Rework introductory paragraph of Section 4.2.
     1. Define rules for execution agent creation in Section 4.2.1.
     2. Define rules for execution agent synchronization in Section 4.2.1.
+    3. Added "Fire-and-Forget" Section and removed corresponding section from future work.
 1. P0058R0
     0. Added changelog section.
     1. Added `future_traits` sketch along with description and removed corresponding section from future work.
