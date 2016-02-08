@@ -1,4 +1,4 @@
-% An Interface for Abstracting Execution | P0058R0
+% An Interface for Abstracting Execution | P0058R1
 % Jared Hoberock
   Michael Garland
   Olivier Girioux
@@ -40,7 +40,7 @@ executor facility based on this design be added to Version 2 of the
 Parallelism TS in order to provide both a means of implementing parallel
 algorithms and a means of controlling their execution.
 
-[^1]: This paper updates N4406. New sections are highlighted with green titles.
+[^1]: This paper updates P0058R0. New sections are highlighted with green titles.
 
 # Summary of Proposed Functionality
 
@@ -146,7 +146,7 @@ control structures based on abstracted, modular execution. Before providing
 the detailed design, we examine some motivating examples of control structures
 that use our executor interface.
 
-## \color{ForestGreen} Implementing `async`
+## Implementing `async`
 
 One of the the simplest possible applications of our `executor_traits`
 interface could be found in a hypothetical implementation of `std::async`. The
@@ -220,7 +220,7 @@ type of execution policy and permits user-defined execution policy
 types, leading to a substantial reduction in total code complexity for
 the library.
 
-## \color{ForestGreen} Implementing `task_block`
+## Implementing `task_block`
 
 Though the initial motivation for our `executor_traits` design was to support
 the parallel algorithms of the Parallelism TS, we believe that it is
@@ -330,7 +330,7 @@ functionality beyond the minimal set proposed in this section.  We
 survey some possible directions for additional functionality in an
 appendix.
 
-## \color{ForestGreen} Uniform manipulation of futures via `future_traits`
+## Uniform manipulation of futures via `future_traits`
 
 *Futures* represent a handle to the completion of an asynchronous task. Their
 interface allows clients to wait for, and get, the result of asynchronous
@@ -586,7 +586,7 @@ This call synchronously creates a *group* of invocations of the given function,
      mode of operation corresponds to a special case of the general multi-agent
      mode and closely matches the executor model proposed by Mysen (N4143).
 
-## \color{ForestGreen} Execution Hierarchies
+## Execution Hierarchies
 
 We often reason about parallel execution as a generalization of sequential
 `for` loops. Indeed, parallel programming systems often expose themselves to
@@ -663,7 +663,7 @@ The resulting implementation of `parallel_executor` is a single `using` declarat
       >
     >;
 
-## \color{ForestGreen} Shared Parameters
+## Shared Parameters
 
 Groups of execution agents often require communicating among themselves. It
 makes sense to mediate this communication via special shared parameters set
@@ -689,7 +689,7 @@ by reference to each execution agent as an additional argument to the task to
 execute. In this way, each execution agent sees the same shared object, and
 with proper synchronization, the execution agents may communicate through it.
 
-## \color{ForestGreen} Multidimensionality
+## Multidimensionality
 
 When programming multidimensional applications, one often must often generate
 points in a multidimensional index space. A straightforward way to produce
@@ -725,7 +725,7 @@ can in general be indexed multidimensionally. In other words, hierarchy and
 multidimensionality are orthogonal features. A given executor can choose to
 support one, both, or neither.
 
-## \color{ForestGreen} Associated Typedefs and Templates
+## Associated Typedefs and Templates
 
 `executor_traits` exposes a number of associated member types and templates
 which appear in the signatures of its member functions. If the executor for
@@ -781,7 +781,7 @@ this way, there is a convenient correspondence between the `shape_type` and
 `index_type` which describe both multi-agent execution groups and containers
 collecting their results.
 
-## \color{ForestGreen} `executor_traits` Operations
+## `executor_traits` Operations
 
 `executor_traits`'s interface includes several member functions for creating
 execution agents and other associated operations. Every member function
@@ -955,13 +955,13 @@ permitted to execute in unordered fashion when executed in different threads,
 and unsequenced with respect to one another when executed in the same thread.
 `vector_execution_tag` is weaker than `parallel_execution_tag`.
 
-* \color{ForestGreen} `concurrent_execution_tag` - The exact semantics of this execution category are to be determined.
+* `concurrent_execution_tag` - The exact semantics of this execution category are to be determined.
 The basic idea is that the function invocations executed by a group of concurrent execution agents are permitted to block each others' forward progress. This guarantee allows concurrent execution agents to communicate and synchronize.
 
-* \color{ForestGreen} `nested_execution_tag<OuterExecutionCategory,InnerExecutionCategory>` - The exact semantics of this execution category are to be determined. This category indicates that execution agents execute in a nested organization.
+* `nested_execution_tag<OuterExecutionCategory,InnerExecutionCategory>` - The exact semantics of this execution category are to be determined. This category indicates that execution agents execute in a nested organization.
 The semantics of the *outer* group of execution agents are given by `OuterExecutionCategory`. With each execution agent in the outer group is associated a group of execution agents with semantics given by `InnerExecutionCategory`.
 
-### \color{ForestGreen} Categories without Corresponding Standard Execution Policies
+### Categories without Corresponding Standard Execution Policies
 #### `concurrent_execution_tag`
 
 Efficient implementations of parallel algorithms must be able to create and
@@ -1003,7 +1003,7 @@ In addition to other executor types under consideration in various proposals, we
   * `this_thread::parallel_executor` - creates groups of parallel execution agents which execute in the calling thread.
   * `vector_executor` - creates groups of vector execution agents which execute in either the calling thread, threads implicitly created by the executor, or both.
   * `this_thread::vector_executor` - creates groups of vector execution agents which execute in the calling thread.
-  * \color{ForestGreen} `concurrent_executor` - creates groups of execution agents which execute concurrently.
+  * `concurrent_executor` - creates groups of execution agents which execute concurrently.
 
 ### Example `this_thread::vector_executor` implementation
 
@@ -1209,7 +1209,7 @@ type returned by the `allocate()` function. For fire-and-forget executors, this
 type could be `void`. The same scheme could also accomodate executors providing
 completion tokens instead of full-fledged futures.
 
-## \color{ForestGreen} Continuation Interface
+## Continuation Interface
 
 Our proposal's handling of continuations in `future_traits::then` and
 `executor_traits::then_execute` differ from the Concurrency TS. In the
@@ -1288,7 +1288,7 @@ exceptional case, the given handler. Alternatively, support for exception
 handling could be exposed as a primitive entirely separate from `then_execute`.
 We anticipate exploring these alternatives as future work.
 
-## \color{ForestGreen} Obtaining executors
+## Obtaining executors
 
 Before using executors to launch work, a program must obtain one or more
 executor objects to use.  For some executor types, directly constructing
@@ -1309,7 +1309,7 @@ platform specific.  It is an open question whether a query interface
 applicable to all target platforms can be defined and whether it would
 prove sufficiently useful to include in a standard executor facility.
 
-# \color{ForestGreen} Appendix: Design Notes
+# Appendix: Design Notes
 
 In this appendix, we provide additional insight into the rationale of various aspects of the design of our executor programming model.
 
@@ -1411,7 +1411,7 @@ may manipulate and reason about shape and index types uniformly without
 requiring that all executors use a particular shape or index type.
 
 
-# \color{ForestGreen} Appendix: Changelog
+# Appendix: Changelog
 
 1. P0058R0
     0. Added changelog section.
