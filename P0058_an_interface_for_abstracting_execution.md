@@ -419,16 +419,56 @@ feedback to guide the design of a complete interface.
 
 ## Uniform manipulation of executors via `executor_traits`
 
-*Executors* are modular components for requisitioning execution agents. During
-parallel algorithm execution, execution policies generate execution agents by
-requesting their creation from an associated executor. Rather than focusing on
-asynchronous task queueing, our complementary treatment of executors casts them
-as modular components for invoking functions over the points of an index space.
-We believe that executors may be conceived of as allocators for execution
-agents and our interface's design reflects this analogy. The process of
-requesting agents from an executor is mediated via the `executor_traits` API,
-which is analogous to the interaction between containers and
-`allocator_traits`.
+\color{ForestGreen} *Executors* are modular components for requisitioning execution agents. For
+library components to be freely composable with diverse executors, including
+user-defined executors, all executors must be capable of supporting a common
+interface. This common interface is defined by the `executor_traits` template.
+This represents the *minimal* interface all control structures can rely on. The
+definition of this interface has been chosen so that `executor_traits` can
+ensure that the entire interface can be supported for all executor types, even
+when the concrete type implements only a subset of the interface. When the
+concrete executor type does not implement a particular executor operation,
+`executor_traits` *synthesizes* this operation's implementation.
+
+There are three executor operations which create execution agents: `execute()`, `async_execute()`, and `then_execute()`.
+
+\color{Black}
+
+### \color{ForestGreen} Execution Agent Rules
+
+\color{ForestGreen}
+
+Execution agent creation is subject to two rules:
+
+  1. Only concrete executor operations create execution agents. Consequently, synthesized
+     executor operations only cause agents to be created by calling concrete executor
+     operations, either directly or indirectly.
+
+  2. The method for choosing the thread or threads on which these agents execute is a property
+     of the concrete executor type.
+
+One implication of these rules is that only concrete executor operations are
+permitted to create threads. Because they control the mapping onto threads, it
+is the prerogative of concrete executors to decide whether execution can occur
+on the thread which invoked the operation. This ensures that operations
+synthesized by `executor_traits` cannot spuriously introduce threads into a
+program, nor eagerly execute agents on the calling thread, unless the specific
+concrete executor is explicitly built to do these things.
+
+Execution agent synchronization is subject to two rules:
+
+  3. Execution agents created by `execute()` synchronize with the thread which invoked `execute()`.
+
+  4. If `async_execute()` (`then_execute()`) has a result, it must satisfy the `Future` concept. Execution agents created
+     by `async_execute()` (`then_execute()`) synchronize with the thread which calls `.wait()` on the future returned by
+     `async_execute()` (`then_execute()`).
+
+Rule 4. implies that if `async_execute()` and `then_execute()` have no result,
+then the execution agents they create synchronize with nothing.
+
+\color{Black}
+
+### `executor_traits` Synopsis
 
 A sketch of our proposed `executor_traits` interface follows:
 
@@ -1413,6 +1453,10 @@ requiring that all executors use a particular shape or index type.
 
 # Appendix: Changelog
 
+0. P0058R1
+    0. Rework introductory paragraph of Section 4.2.
+    1. Define rules for execution agent creation in Section 4.2.1.
+    2. Define rules for execution agent synchronization in Section 4.2.1.
 1. P0058R0
     0. Added changelog section.
     1. Added `future_traits` sketch along with description and removed corresponding section from future work.
