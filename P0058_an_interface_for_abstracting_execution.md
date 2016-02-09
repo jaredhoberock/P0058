@@ -1106,6 +1106,103 @@ The following code example demonstrates a possible implementation of `this_threa
 
 In our experiments with Clang and the Intel compiler, we found that the performance of codes written using `this_thread::vector_executor` is identical to an equivalent SIMD for loop.
 
+## \color{ForestGreen} A Dynamic Polymorphic Executor
+
+\color{ForestGreen}
+
+The executor interface we define permits control structures to accept executors as template
+parameters. The resulting static polymorphism is valuable in avoiding unnecessary overhead
+and keeping the cost of abstraction near zero. On the other hand, there may be cases where
+executors must be passed across binary interfaces. To support such use cases, we propose
+the following `executor` class to act as a polymorphic container for all executor types:
+
+    class executor
+    {
+      public:
+        using execution_category = erased_type;
+
+        template<class Executor>
+        executor(Executor&& exec);
+
+        template<class Function>
+        result_of_t<Function()> execute(Function&& f);
+
+        template<class Function, class... Factories>
+        vector<result_of_t<Function(size_t, result_of_t<Factories()>...)>>
+        execute(Function f, size_t n, Factories... factories);
+
+        template<class Function>
+        future<result_of_t<Function()>> async_execute(Function&& f);
+
+        template<class Function, class... Factories>
+        future<result_of_t<Function(size_t, result_of_t<Factories()>...)>>
+        async_execute(Function f, size_t n, Factories... factories);
+
+        // the rest of the Executor interface follows
+        ...
+    };
+
+An `executor` object may be constructed from an object of any type fulfilling
+the `Executor` concept. For every `executor_traits` function, `executor`
+exposes a corresponding member function whose implementation manipulates the
+underlying contained executor. This is possible via typical type erasure
+techniques.
+
+For example, the following sketch of `executor` demonstrates a possible
+implementation of `executor::async_execute()`:
+
+    class executor
+    {
+      public:
+        template<class Executor>
+        dynamic_executor(Executor&& exec)
+          : executor_ptr(make_unique<abstract_executor>(forward<Executor>(exec))
+        {}
+
+        template<class Function>
+        future<result_of_t<Function()>> async_execute(Function&& f)
+        {
+          // async_execute a future to any
+          future<any> any_fut = executor_ptr->async_execute([]
+          {
+            // call f() and erase the type of its result
+            return any(f());
+          });
+
+          using result_type = result_of_t<Function()>;
+
+          // cast the any future to the right type
+          return future_traits<future<any>>::template cast<result_type>(any_fut);
+        }
+
+      private:
+        struct abstract_executor
+        {
+          virtual ~abstract_executor(){};
+          virtual future<any> async_execute(function<any()>) = 0;
+        };
+
+        template<class Executor>
+        struct concrete_executor : public abstract_executor
+        {
+          Executor exec;
+          
+          virtual future<any> async_execute(function<any()> f)
+          {
+            return executor_traits<Executor>::async_execute(exec, f);
+          }
+        };
+
+        unique_ptr<abstract_executor> executor_ptr;
+    };
+
+The general strategy is to transport all parameters that would be represented
+by template parameters in a function template interface through type erasing
+containers such as `any` and `function`. Similar constructions yield the rest
+of the interface.
+
+\color{Black}
+
 ## Execution policy support for executors
 
 We accomplish interoperation between execution policies and executors by
@@ -1471,6 +1568,7 @@ requiring that all executors use a particular shape or index type.
     1. Define rules for execution agent creation in Section 4.2.1.
     2. Define rules for execution agent synchronization in Section 4.2.1.
     3. Added "Fire-and-Forget" Section and removed corresponding section from future work.
+    4. Added section describing the dynamic polymorphic `executor` container.
 1. P0058R0
     0. Added changelog section.
     1. Added `future_traits` sketch along with description and removed corresponding section from future work.
