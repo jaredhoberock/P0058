@@ -1574,6 +1574,42 @@ platform specific.  It is an open question whether a query interface
 applicable to all target platforms can be defined and whether it would
 prove sufficiently useful to include in a standard executor facility.
 
+## \color{ForestGreen} Executor Introspection
+
+\color{ForestGreen}
+
+Some executor use cases require providing an execution agent with the ability
+to identify the executor or execution resource on which it is currently
+executing. Some proposals such as P0113R0 (Kohlkoff) refer to this resource as
+the execution agent's *execution context*. Executor introspection is useful
+when an execution agent created by an executor itself wishes to create
+additional work. Informing the execution agent of the executor from whence it
+came is useful for making informed decisions about the efficient use of
+execution resources within that agent.
+
+While it is true that a function to be executed could simply capture the executor
+as part of its closure, this assumes that the author of the function has access
+to the executor at the point at which it is defined. This is in general not the
+case.
+
+Kohlkoff's proposal provides a mechanism based on thread local storage for
+querying the ambient current executor within an execution agent. It seems
+unlikely that a mechanism based on thread local storage would be universally
+desirable or efficient.
+
+Instead, we envision a protocol by which a function invoked through an executor
+operation could receive a copy of the executor as an optional first parameter.
+A copy of the executor, rather than reference, would be required for at least
+two reasons:
+
+  1. During asynchronous operations, the executor's lifetime may have ended by the time the function is invoked.
+  2. Executor operations that create multiple agents would create data races when accessing the same executor.
+
+More sophisticated and convenient mechanisms which track the current executor
+could be built on top of this basic protocol.
+
+\color{Black}
+
 # Appendix: Design Notes
 
 In this appendix, we provide additional insight into the rationale of various aspects of the design of our executor programming model.
@@ -1698,6 +1734,7 @@ requiring that all executors use a particular shape or index type.
     7. Added descriptions of `executor_traits::shared_future` and `executor_traits::share_future`.
     8. Added section Standard Control Structures arguing for a usability interface for
        executors and a convention for composing executors with control structures.
+    9. Added Future Work section Executor Introspection.
 1. P0058R0
     0. Added changelog section.
     1. Added `future_traits` sketch along with description and removed corresponding section from future work.
@@ -1725,4 +1762,5 @@ requiring that all executors use a particular shape or index type.
 6. N4439 - [Light-Weight Execution Agents](http://www.open-std.org/jtc1/sc22/wg21/docs/papers/2015/n4439.pdf), T. Riegel, 2015.
 7. N4501 - [Working Draft, Technical Specification for C++ Extensions for Concurrency](http://www.open-std.org/jtc1/sc22/wg21/docs/papers/2015/n4501.html)A. Laksberg, 2015.
 8. N4512 - [Multidimensional bounds, offset and array_view, revision 7](http://www.open-std.org/jtc1/sc22/wg21/docs/papers/2015/n4512.html), L. Mendakiewicz & H. Sutter, 2015.
+9. P0113 - [Executors and Asynchronous Operations, Revision 2](http://www.open-std.org/jtc1/sc22/wg21/docs/papers/2015/p0113r0.html), C. Kohlkoff, 2015.
 
