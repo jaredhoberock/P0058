@@ -1284,6 +1284,40 @@ of the interface.
 
 \color{Black}
 
+## \color{ForestGreen} Standard Control Structures
+
+\color{ForestGreen}
+
+The `executor_traits` interface we have described is a *customization*
+interface for executors: authors of executors target it by implementing a
+subset of `executor_traits` functionality as concrete executor member
+functions. This interface has been chosen so that `executor_traits` can ensure
+that the entire interface can be supported for all executor types, even when
+the concrete executor supports only a subset of the interface.
+
+Because its interface is complete, it is sufficient for a client to interface
+with an executor via `executor_traits` when implementing any computation whose
+execution is parameterized by that executor. However, working at such a low
+level of abstraction is often undesirable. Instead, the Standard Library should
+provide higher level abstract *control structures*, parameterized by executors,
+for implementing common operations. As a whole, this set of control
+structures forms an executor *usability* interface.
+
+Examples of existing control structures are the functions `std::async`,
+`std::invoke`, `std::future::then`, as well as the entire collection
+of parallel algorithms. These control structures should be extended
+with new overloads specifying the executor to be used when creating
+work.
+
+The syntactic convention we propose is that:
+
+  * Constructs that create a single agent accept as their first parameter an executor.
+  * Constructs that create one or more agents accept an execution policy.
+
+We describe a mechanism for composing execution policies with executors in the next section.
+
+\color{Black}
+
 ## Execution policy support for executors
 
 We accomplish interoperation between execution policies and executors by
@@ -1587,7 +1621,12 @@ interface nicely avoids these problems while enabling customizable memory
 allocation.
 
 \color{ForestGreen}
-User control over the construction of the result of these operations is also desirable, for the same reasons.
+
+User control over the construction of the result of these operations is also
+desirable, for the same reasons. When constructing an object to contain
+multiple results, the factory is invoked with the `shape` parameter given to
+the executor operation.
+
 \color{Black}
 
 ## Multidimensionality
@@ -1657,6 +1696,8 @@ requiring that all executors use a particular shape or index type.
     5. Added `shared_future_type` and `share` to `future_traits` synopsis.
     6. Added `shared_future` and `share_future` to `executor_traits` synopsis.
     7. Added descriptions of `executor_traits::shared_future` and `executor_traits::share_future`.
+    8. Added section Standard Control Structures arguing for a usability interface for
+       executors and a convention for composing executors with control structures.
 1. P0058R0
     0. Added changelog section.
     1. Added `future_traits` sketch along with description and removed corresponding section from future work.
