@@ -512,25 +512,30 @@ class executor_traits
     // creates an immediately ready future containing a T contructed from 
     // the given constructor arguments
     template<class T, class... Args>
-    static future<T> make_ready_future(executor_type& ex, Args&&... args);
+    static future<T>
+      make_ready_future(executor_type& ex, Args&&... args);
 
     // converts a (possibly foreign) some_future<U> to this executor's future<T>
     template<class T, class Future>
-    static future<T> future_cast(executor_type& ex, Future& fut);
+    static future<T>
+      future_cast(executor_type& ex, Future& fut);
 
     // creates a shared_future<T> from a some_future<T>
-    static shared_future<...> share_future(executor_type& ex, Future& fut);
+    static shared_future<...>
+      share_future(executor_type& ex, Future& fut);
 
     // creates multiple shared_futures<T> from a some_future<T> 
-    static container<shared_future<...>> share_future(executor_type& ex, Future& fut,
-                                                      shape_type shape);
+    static container<shared_future<...>>
+      share_future(executor_type& ex, Future& fut,
+                   shape_type shape);
 
     // creates multiple shared_futures<T> from a some_future<T> and returns them
     // through the result of the given Factory
     template<class Factory>
-    static result_of_t<Factory(shape_type)> share_future(executor_type& ex, Future& fut,
-                                                         Factory factory,
-                                                         shape_type shape);
+    static result_of_t<Factory(shape_type)>
+      share_future(executor_type& ex, Future& fut,
+                   Factory factory,
+                   shape_type shape);
 
     // returns the largest shape the executor can accomodate in a single operation
     template<class Function>
@@ -539,90 +544,105 @@ class executor_traits
     // returns a future to a tuple-like type containing the values of 
     // the given futures. The result becomes ready when all the given futures are ready
     template<class... Futures>
-    static future<...> when_all(executor_type& ex, Futures&&... futures);
+    static future<...>
+      when_all(executor_type& ex, Futures&&... futures);
 
     // single-agent when_all_execute_and_select
     // invokes the function when all the input futures are ready
     // the values of the input futures are passed through to the result future as a tuple.
     // the caller may select which values to passthrough
     template<size_t... Indices, class Function, class TupleOfFutures>
-    static future<...> when_all_execute_and_select(executor_type& ex, Function&& f,
-                                                   TupleOfFutures&& futures);
+    static future<...>
+      when_all_execute_and_select(executor_type& ex, Function&& f,
+                                  TupleOfFutures&& futures);
 
     // multi-agent when_all_execute_and_select
     template<size_t... Indices, class Function, class TupleOfFutures, class... Factories>
-    static future<...> when_all_execute_and_select(executor_type& ex, Function f,
-                                                   shape_type shape,
-                                                   TupleOfFutures&& futures,
-                                                   Factories... factories);
+    static future<...>
+      when_all_execute_and_select(executor_type& ex, Function f,
+                                  shape_type shape,
+                                  TupleOfFutures&& futures,
+                                  Factories... factories);
 
     // single-agent then_execute
     // asynchronously invokes f(value) when the input future's value is ready
     // returns the result f(value) via future
     template<class Function, class Future>
-    static future<...> then_execute(executor_type& ex, Function&& f, Future& fut); 
+    static future<...>
+      then_execute(executor_type& ex, Function&& f, Future& fut); 
 
     // multi-agent then_execute returning user-specified container
     // asynchronously invokes f(idx, value, shared_args...) when the input future's value is ready
-    // returns the results of f(idx, value, shared_args...) via future<Container>
-    template<class Container, class Function, class Future, class... Factories>
-    static future<Container> then_execute(executor_type& ex, Function f,
-                                          shape_type shape,
-                                          Future& fut,
-                                          Factories... factories);
+    // returns the results of f(idx, value, shared_args...) via future<some_container>
+    template<class Function, class Future, class Factory, class... Factories>
+    static future<result_of_t<Factory(shape_type)>>
+      then_execute(executor_type& ex, Function f,
+                   Factory result_factory,
+                   shape_type shape,
+                   Future& fut,
+                   Factories... factories);
 
     // multi-agent then_execute returning default container
     // asynchronously invokes f(idx, value) when the input future's value is ready
     // returns the results of f(idx, value, shared_args...) via future<container<...>>
     template<class Function, class Future, class... Factories>
-    static future<container<...>> then_execute(executor_type& ex, Function f,
-                                               shape_type shape,
-                                               Future& fut,
-                                               Factories... factories);
+    static future<container<...>>
+      then_execute(executor_type& ex, Function f,
+                   shape_type shape,
+                   Future& fut,
+                   Factories... factories);
 
     // single-agent async_execute
     // asynchronously invokes f()
     // returns the result of f()'s via future
     template<class Function>
-    static future<result_of_t<Function()>> async_execute(executor_type& ex, Function&& f);
+    static future<result_of_t<Function()>>
+      async_execute(executor_type& ex, Function&& f);
 
     // multi-agent async_execute returning user-specified container
     // asynchronously invokes f(idx, shared_args...)
-    // returns the results of f(idx, shared_args...) via future<Container>
-    template<class Container, class Function, class... Factories>
-    static future<Container> async_execute(executor_type& ex, Function f,
-                                           shape_type shape,
-                                           Factories... factories);
+    // returns the results of f(idx, shared_args...) via future<some_container>
+    template<class Container, class Function, class Factory, class... Factories>
+    static future<result_of_t<Factory(shape_type)>
+      async_execute(executor_type& ex, Function f,
+                    Factory result_factory,
+                    shape_type shape,
+                    Factories... factories);
 
     // multi-agent async_execute returning default container
     // asynchronously invokes f(idx, shared_args...)
     // returns the results of f(idx, shared_args...) via future<container<...>>
     template<class Function, class... Factories>
-    static future<container<...>> async_execute(executor_type& ex, Function f,
-                                                shape_type shape,
-                                                Factories... factories);
+    static future<container<...>>
+      async_execute(executor_type& ex, Function f,
+                    shape_type shape,
+                    Factories... factories);
 
     // single-agent execute
     // synchronously invokes f()
     // returns the result of f()
     template<class Function>
-    static result_of_t<Function()> execute(executor_type& ex, Function&& f);
+    static result_of_t<Function()>
+      execute(executor_type& ex, Function&& f);
 
     // multi-agent execute returning user-specified container
     // synchronously invokes f(idx, shared_args...)
     // returns the results of f(idx, shared_args...) via Container
-    template<class Container, class Function, class... Factories>
-    static Container execute(executor_type& ex, Function f,
-                             shape_type shape,
-                             Factories... factories);
+    template<class Function, class Factory, class... Factories>
+    static result_of_t<Factory(shape_type)>
+      execute(executor_type& ex, Function f,
+              Factory result_factory,
+              shape_type shape,
+              Factories... factories);
 
     // multi-agent execute returning default container
     // synchronously invokes f(idx, shared_args...)
     // returns the results of f(idx, shared_args...) via container<...>
     template<class Function, class... Factories>
-    static container<...> execute(executor_type& ex, Function f,
-                                  shape_type shape,
-                                  Factories... factories);
+    static container<...>
+      execute(executor_type& ex, Function f,
+              shape_type shape,
+              Factories... factories);
 };
 
 // inherits from true_type if T satisfies the Executor concept implied by executor_traits;
@@ -1017,11 +1037,18 @@ by `then_execute`. If the continuation has no result, `then_execute`'s result
 is `future<void>`, where `future` is the executor's associated `future`
 template. If the continuation has a result of type `T`, then `then_execute`'s
 result is `future<T>` in the single-agent case. In the multi-agent case, the
-results of all the individual invocations are collected in a container. If the
-client of the executor specified a container type `Container` via explicit
-template instantiate, then `then_execute`'s result is `future<Container>`;
-otherwise, it is `future<container<T>>`. In any case, execution agent `idx`'s
-result is located at index `idx` in the resulting container.
+results of all the individual invocations are collected in a container.
+
+\color{ForestGreen}
+
+The type of container returned by `then_execute` may be controlled by the
+caller. If the caller supplies a factory to construct the result via the
+`result_factory` parameter, then `then_execute`'s result is
+`future<result_of_t<Factory(shape_type)>>`; otherwise, it is
+`future<container<T>>`. In any case, execution agent `idx`'s result is located
+at index `idx` in the resulting container.
+
+\color{Black}
 
 ### `async_execute`
 
@@ -1548,7 +1575,7 @@ executors, we may choose to require executors to define at least one member
 function corresponding to an `executor_traits` operation.
 
 
-## Shared Parameters
+## \color{ForestGreen} Factories
 
 In our initial design, executor clients passed shared parameter values directly
 to `executor_traits` operations rather than indirectly through a factory. It
@@ -1558,6 +1585,10 @@ expensive, especially on NUMA architectures. Moreover, on distributed,
 cluster-based systems, copies might be impossible. The `Factory`-based
 interface nicely avoids these problems while enabling customizable memory
 allocation.
+
+\color{ForestGreen}
+User control over the construction of the result of these operations is also desirable, for the same reasons.
+\color{Black}
 
 ## Multidimensionality
 
