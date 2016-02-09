@@ -369,6 +369,9 @@ class future_traits
     template<class U>
     using rebind = ...
 
+    // the type of future returned by share()
+    using shared_future_type = ...
+
     // waits for the future to become ready
     static void wait(future_type& fut);
 
@@ -391,6 +394,9 @@ class future_traits
     // note: some kinds of casts can be performed without creating a continuation
     template<class U>
     static rebind<U> cast(future_type& fut);
+
+    // shares the given future
+    static shared_future_type share(future_type& fut);
 };
 ```
 
@@ -494,6 +500,10 @@ class executor_traits
     template<class T>
     using future = ...
 
+    // the type of future returned by share_future
+    template<class T>
+    using shared_future = ...
+
     // the type of container used to return multiple results
     // from multi-agent operations
     template<class T>
@@ -507,6 +517,20 @@ class executor_traits
     // converts a (possibly foreign) some_future<U> to this executor's future<T>
     template<class T, class Future>
     static future<T> future_cast(executor_type& ex, Future& fut);
+
+    // creates a shared_future<T> from a some_future<T>
+    static shared_future<...> share_future(executor_type& ex, Future& fut);
+
+    // creates multiple shared_futures<T> from a some_future<T> 
+    static container<shared_future<...>> share_future(executor_type& ex, Future& fut,
+                                                      shape_type shape);
+
+    // creates multiple shared_futures<T> from a some_future<T> and returns them
+    // through the result of the given Factory
+    template<class Factory>
+    static result_of_t<Factory(shape_type)> share_future(executor_type& ex, Future& fut,
+                                                         Factory factory,
+                                                         shape_type shape);
 
     // returns the largest shape the executor can accomodate in a single operation
     template<class Function>
@@ -826,6 +850,16 @@ may opt to define their own types of future when it is desirable to do so for
 the reasons discussed in previous sections.  By default, this template is
 `std::future<T>`.
 
+### \color{ForestGreen} `shared_future<T>`
+
+\color{ForestGreen}
+
+The `shared_future<T>` template parameterizes the types of futures which the
+`executor_type` produces as a result of the `share_future` function. By
+default, this template is `future_traits<future<T>>::shared_future_type`.
+
+\color{Black}
+
 ### `container<T>`
 
 The `container<T>` template parameterizes the collections of results produced
@@ -879,6 +913,26 @@ include this operation because we found ourselves frequently requiring such
 casts within our current prototype's implementation of `executor_traits`. By
 exposing this operation as an optimization and customization point, it allows
 executor authors to accelerate this frequently-occurring use case.
+
+### \color{ForestGreen} `share_future`
+
+\color{ForestGreen}
+
+Like `future_cast`, `share_future` generalizes our previously described
+`future_traits::share` operation to interoperate with executors. It is useful
+when implementing dynamically-sized "fan-out" operations and when constructing
+important kinds of compositions of executors. For example, an adaptor executor
+may adapt a collection of underlying executors and present the entire
+collection as a single logical executor. To implement the `then_execute`
+operation, the wrapping executor must communicate the incoming future
+dependency to each of the N underlying executors. The most straightforward way
+to accomplish this is to share the incoming future N times and call
+`then_execute()` on each underlying executor. Because the degree of sharing
+may be arbitrarily large, we provide overloads of the `share_future` operation
+which return a container of `shared_future<T>`. These overloads capture a
+frequent use case and allow the executor author to accelerate it.
+
+\color{Black}
 
 ### `max_shape`
 
@@ -1569,6 +1623,9 @@ requiring that all executors use a particular shape or index type.
     2. Define rules for execution agent synchronization in Section 4.2.1.
     3. Added "Fire-and-Forget" Section and removed corresponding section from future work.
     4. Added section describing the dynamic polymorphic `executor` container.
+    5. Added `shared_future_type` and `share` to `future_traits` synopsis.
+    6. Added `shared_future` and `share_future` to `executor_traits` synopsis.
+    7. Added descriptions of `executor_traits::shared_future` and `executor_traits::share_future`.
 1. P0058R0
     0. Added changelog section.
     1. Added `future_traits` sketch along with description and removed corresponding section from future work.
