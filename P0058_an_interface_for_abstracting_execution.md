@@ -1610,6 +1610,21 @@ could be built on top of this basic protocol.
 
 \color{Black}
 
+## \color{ForestGreen} Asynchronous Progress Guarantees
+
+\color{ForestGreen}
+
+Our proposal describes a mechanism by which executors advertise the progress
+guarantees they make about groups of agents via a nested typedef
+`execution_category`. These guarantees describe an execution agent's progress
+with respect to the other agents within the same group as that agent. However,
+our proposal does not currently describe the progress relationship between
+a thread which launches an asynchronous executor operation and the group
+of agents created by that operation. It may be similarly useful to use the
+type system to describe this relationship as well.
+
+\color{ForestGreen}
+
 # Appendix: Design Notes
 
 In this appendix, we provide additional insight into the rationale of various aspects of the design of our executor programming model.
@@ -1735,6 +1750,7 @@ requiring that all executors use a particular shape or index type.
     8. Added section Standard Control Structures arguing for a usability interface for
        executors and a convention for composing executors with control structures.
     9. Added Future Work section Executor Introspection.
+    10. Added Future Work section Asynchronous Progress Guarantees.
 1. P0058R0
     0. Added changelog section.
     1. Added `future_traits` sketch along with description and removed corresponding section from future work.
