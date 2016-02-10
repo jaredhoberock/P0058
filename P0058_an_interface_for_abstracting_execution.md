@@ -1736,6 +1736,55 @@ may manipulate and reason about shape and index types uniformly without
 requiring that all executors use a particular shape or index type.
 
 
+## \color{ForestGreen} Executor Operation Parameter Ordering
+
+\color{ForestGreen}
+
+The order of parameters of the `executor_traits` functions `execute`,
+`async_execute`, and `then_execute` was chosen to conform to the following conventions:
+
+  1. Multi-agent overloads should append a `shape` parameter to the single-agent overload.
+  2. The parameter order of the user function to be invoked should match the order of the parameters to the `executor_traits` function.
+  3. The execution agent index, if it exists, should be the first parameter of the user function.
+
+`then_execute` disrupts these conventions due to its `Future` parameter. The
+single-agent version of `then_execute` receives the `Future` as its second
+parameter:
+
+    template<class Function, class T>
+    future<result_of_t<Function(T)>>
+      then_execute(Function&& f, future<T>& fut);
+
+If the multi-agent `then_execute` overload extended this function
+by appending the shape parameter, the signature would look like this:
+
+    template<class Future, class T, class... Factories>
+    future<result_of_t<Function(T&,index_type,result_of_t<Factories()>&...)>>
+      then_execute(Function f, future<T>& fut, shape_type shape, Factories... factories);
+
+The signature of the user function `f` would need to be `f(T&, index_type,
+    result_of_t<Factories>&...)` to match this parameter order.  However, this
+violates 3.
+
+The more important conventions are 2. and 3, so the form of
+`then_execute` we propose violates convention 1.:
+
+    template<class Future, class T, class... Factories>
+    future<result_of_t<Function(index_type,T&,result_of_t<Factories()>&...)>>
+      then_execute(Function f, shape_type shape, future<T>& fut, Factories... factories);
+
+With corresponding user function signature:
+
+    f(index_type, T&, result_of_t<Factories()>&...)
+
+Return type factories further disrupt these conventions. We insert the
+`result_factory` between `f` and `shape` to position `result_factory` to the
+left of the function parameters, because it corresponds to the result of the user
+function.
+
+\color{Black}
+
+
 # Appendix: Changelog
 
 0. P0058R1
