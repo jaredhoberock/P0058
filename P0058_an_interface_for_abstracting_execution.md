@@ -1,9 +1,10 @@
 % An Interface for Abstracting Execution | P0058R1
 % Jared Hoberock
   Michael Garland
-  Olivier Girioux
-  {jhoberock, mgarland, ogiroux}@nvidia.com
-% 2015-09-25
+  Olivier Giroux
+  {jhoberock,mgarland,ogiroux}@nvidia.com
+  Hartmut Kaiser hartmut.kaiser@gmail.com
+% 2016-02-12
 
 # Introduction
 
