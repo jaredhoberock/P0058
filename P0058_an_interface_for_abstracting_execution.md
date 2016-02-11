@@ -1932,6 +1932,7 @@ function.
        executors and a convention for composing executors with control structures.
     9. Added Future Work section Executor Introspection.
     10. Added Future Work section Asynchronous Progress Guarantees.
+    11. Added section Extending P0155R0 to support execution policies and executors
 1. P0058R0
     0. Added changelog section.
     1. Added `future_traits` sketch along with description and removed corresponding section from future work.
