@@ -272,6 +272,137 @@ N4411 are undesirable for particular use cases, a future revision of
 `task_block` could potentially parameterize these semantics by accepting a user
 executor.
 
+\color{ForestGreen}
+
+## Extending P0155R0 to support execution policies and executors
+
+Enabling passing an optional execution policy to `define_task_block` gives the 
+user control over the amount of parallelism employed by the created `task_block`.
+In the following example the use of an explicit `par` execution policy makes
+the user's intention explicit:
+
+    template <typename Func>
+    int traverse(node *n, Func&& compute)
+    {
+        int left = 0, right = 0;
+
+        define_task_block(
+            par,                // parallel_execution_policy
+            [&](task_block<>& tb) {
+                if (n->left)
+                    tb.run([&] { left = traverse(n->left, compute); });
+                if (n->right)
+                    tb.run([&] { right = traverse(n->right, compute); });
+            });
+
+        return compute(n) + left + right;
+    }
+
+Please note, that this addition to PR0115R0 would require to turn the actual
+`task_block` type as passed to the lambda into a template. Here is the
+corresponding changed interface such an implementation would expose:
+
+    namespace std {
+      namespace experimental {
+      namespace parallel {
+      inline namespace v2 {
+
+        class task_canceled_exception;
+
+        template <typename ExPolicy = v1::parallel_execution_policy>
+          class task_block;
+
+        template <typename F>
+          void define_task_block(F&& f);
+        template <typename F>
+          void define_task_block_restore_thread(F&& f);
+
+        // new: overloads taking an additional execution policy argument
+        template <typename ExPolicy, typename F>
+          void define_task_block(ExPolicy&& policy, F&& f);
+        template <typename ExPolicy, typename F>
+          void define_task_block_restore_thread(ExPolicy&& policy, F&& f);
+      }
+      }
+      }
+
+    }
+
+This change also enables defining at runtime what execution policy to use (by
+passing an instance of a generic `v1::execution_policy`). This is benefitial 
+in many contexts, for instance debugging (by dynamically setting the execution 
+policy to `seq`).
+
+Often, we want to be able to not only define an execution policy to use by 
+default for all spawned tasks inside the task block, but in addition to 
+customize the execution context for one of the tasks executed by 
+`task_block::run`. Adding an optionally passed executor instance to that 
+function enables this use case:
+
+    template <typename Func>
+    int traverse(node *n, Func&& compute)
+    {
+        int left = 0, right = 0;
+
+        define_task_block(
+            par,                // parallel_execution_policy
+            [&](auto& tb) {
+                if (n->left)
+                {
+                    // use explicitly specified executor to run this task
+                    tb.run(my_executor(), [&] { left = traverse(n->left, compute); });
+                }
+                if (n->right)
+                {
+                    // use the executor associated with the par execution policy
+                    tb.run([&] { right = traverse(n->right, compute); });
+                }
+            });
+
+        return compute(n) + left + right;
+    }
+
+A corresponding template `task_block` would look like this:
+
+    template <typename ExPolicy = v1::parallel_execution_policy>
+    class task_block {
+    private:
+        // Private members and friends (for exposition only)
+        template <typename F>
+          friend void define_task_block(F&& f);
+        template <typename F>
+          friend void define_task_block_restore_thread(F&& f);
+
+        // new: overloads taking an additional execution policy argument
+        template <typename ExPolicy, typename F>
+          friend void define_task_block(ExPolicy&& policy, F&& f);
+        template <typename ExPolicy, typename F>
+          friend void define_task_block_restore_thread(ExPolicy&& policy, F&& f);
+
+        task_block(_unspecified_);
+        ~task_block();
+
+    public:
+        task_block(const task_block&) = delete;
+        task_block& operator=(const task_block&) = delete;
+        task_block* operator&() const = delete;
+
+        template <typename F>
+          void run(F&& f);
+
+        // new: overload taking an additional executor argument
+        template <typename Executor, typename F>
+          void run(Executor& ex, F&& f);
+
+        void wait();
+
+        // new: expose underlying execution policy.
+        ExPolicy& policy();
+        const ExPolicy& policy() const;
+    };
+
+\color{Black}
+
 ## Composing higher-level user-defined codes with executors
 
 The following code example is presented as a motivating example of paper N4143:
