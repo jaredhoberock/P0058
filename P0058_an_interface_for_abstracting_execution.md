@@ -138,16 +138,16 @@ the following use cases of the parallel algorithms library are possible:
     my_executor my_exec = ...;
     std::sort(par.on(my_exec), data.begin(), data.end());
 
-# Implementing Control Structures with Executors
+# Composing Control Structures with Executors
 
 The remainder of this paper outlines a featureful, concrete executor facility
 that both satisfies the minimum requirements for supporting the algorithms of
 the Parallelism TS, and also provides a foundation for creating powerful
 control structures based on abstracted, modular execution. Before providing
 the detailed design, we examine some motivating examples of control structures
-that use our executor interface.
+that compose with our executor interface.
 
-## Implementing `async`
+## `async`
 
 One of the the simplest possible applications of our `executor_traits`
 interface could be found in a hypothetical implementation of `std::async`. The
@@ -187,7 +187,7 @@ of futures returned by the current `std::async` is undesirable. The blocking
 behavior of the `future` type returned by this new, hypothetical overload would
 simply be a property of the executor's associated `future` type.
 
-## Implementing `for_each_n`
+## `for_each_n`
 
 The initial motivation for the interface we describe in this paper is to support the
 implementation of algorithms in the Parallelism TS. As an example, the
@@ -221,66 +221,14 @@ type of execution policy and permits user-defined execution policy
 types, leading to a substantial reduction in total code complexity for
 the library.
 
-## Implementing `task_block`
-
-Though the initial motivation for our `executor_traits` design was to support
-the parallel algorithms of the Parallelism TS, we believe that it is
-sufficiently flexible enough to implement other execution control structures.
-Below is a sketch of a possible implementation of the salient member functions
-of N4411's `task_block`.
-
-    class task_block
-    {
-      public:
-        template<class F>
-        void run(F&& f)
-        {
-          // asynchronously execute f on a new agent
-          auto fut = executor_traits<executor_type>::async_execute(exec, std::forward<F>(f));
-
-          // record the outstanding future in our list
-          futures.emplace_back(move(fut));
-        }
-
-        void wait()
-        {
-          // wait for all outstanding futures
-          for(auto& f : futures)
-          {
-            future_traits<future_type>::wait(f);
-          }
-
-          futures.clear();
-        }
-
-      private:
-        using executor_type = ...
-        using future_type = typename executor_traits<executor_type>::template future<void>;
-
-        executor_type exec;
-        vector<future_type> futures;
-    };
-
-In this example, the implementation of `task_block` provides its own custom
-type of executor to provide the concurrency guarantees detailed in N4411.
-Additionally, the type of future it collects is also potentially custom and
-depends on the executor. Instead of managing execution agent lifetimes
-directly, `task_block`'s `.run()` and `.wait()` functions simply defer agent
-creation to its member executor.  Since agent creation is delegated to the
-executor, it presents an interesting opportunity for relaxing `task_block`'s
-semantics in a future revision. If the default execution agent semantics of
-N4411 are undesirable for particular use cases, a future revision of
-`task_block` could potentially parameterize these semantics by accepting a user
-executor.
-
 \color{ForestGreen}
 
-## Extending P0155R0 to support execution policies and executors
+## `task_block`
 
-Enabling passing an optional execution policy to `define_task_block` gives the 
-user control over the amount of parallelism employed by the created `task_block`.
-In the following example the use of an explicit `par` execution policy makes
-the user's intention explicit:
+Enabling passing an optional execution policy to `define_task_block` as
+described by P0155R0 gives the user control over the execution agents created
+by the `task_block`. In the following example the use of an explicit `par`
+execution policy makes the user's intention explicit:
 
     template <typename Func>
     int traverse(node *n, Func&& compute)
@@ -299,9 +247,9 @@ the user's intention explicit:
         return compute(n) + left + right;
     }
 
-Please note, that this addition to PR0115R0 would require to turn the actual
-`task_block` type as passed to the lambda into a template. Here is the
-corresponding changed interface such an implementation would expose:
+Please note, that this addition requires turning the actual `task_block` type
+as passed to the lambda into a template. Here is the corresponding changed
+interface such an implementation would expose:
 
     namespace std {
       namespace experimental {
@@ -330,7 +278,7 @@ corresponding changed interface such an implementation would expose:
     }
 
 This change also enables defining at runtime what execution policy to use (by
-passing an instance of a generic `v1::execution_policy`). This is benefitial 
+passing an instance of a generic `v1::execution_policy`). This is beneficial 
 in many contexts, for instance debugging (by dynamically setting the execution 
 policy to `seq`).
 
@@ -404,7 +352,7 @@ A corresponding template `task_block` would look like this:
 
 \color{Black}
 
-## Composing higher-level user-defined codes with executors
+## Higher-level user-defined codes
 
 The following code example is presented as a motivating example of paper N4143:
 
@@ -557,7 +505,7 @@ feedback to guide the design of a complete interface.
 
 ## Uniform manipulation of executors via `executor_traits`
 
-\color{ForestGreen} *Executors* are modular components for requisitioning execution agents. For
+\color{ForestGreen} *Executors* are modular components for creating execution agents. For
 library components to be freely composable with diverse executors, including
 user-defined executors, all executors must be capable of supporting a common
 interface. This common interface is defined by the `executor_traits` template.
@@ -1755,7 +1703,7 @@ a thread which launches an asynchronous executor operation and the group
 of agents created by that operation. It may be similarly useful to use the
 type system to describe this relationship as well.
 
-\color{ForestGreen}
+\color{Black}
 
 # Appendix: Design Notes
 
@@ -1792,7 +1740,7 @@ executors, we may choose to require executors to define at least one member
 function corresponding to an `executor_traits` operation.
 
 
-## \color{ForestGreen} Factories
+## Factories
 
 In our initial design, executor clients passed shared parameter values directly
 to `executor_traits` operations rather than indirectly through a factory. It
@@ -1933,6 +1881,7 @@ function.
     9. Added Future Work section Executor Introspection.
     10. Added Future Work section Asynchronous Progress Guarantees.
     11. Added section Extending P0155R0 to support execution policies and executors
+    12. Eliminated redundant section "Implementing task_block"
 1. P0058R0
     0. Added changelog section.
     1. Added `future_traits` sketch along with description and removed corresponding section from future work.
