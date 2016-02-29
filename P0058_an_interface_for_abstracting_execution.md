@@ -601,17 +601,19 @@ class executor_traits
       future_cast(executor_type& ex, Future& fut);
 
     // creates a shared_future<T> from a some_future<T>
+    template<class Future>
     static shared_future<...>
       share_future(executor_type& ex, Future& fut);
 
     // creates multiple shared_futures<T> from a some_future<T> 
+    template<class Future>
     static container<shared_future<...>>
       share_future(executor_type& ex, Future& fut,
                    shape_type shape);
 
     // creates multiple shared_futures<T> from a some_future<T> and returns them
     // through the result of the given Factory
-    template<class Factory>
+    template<class Future, class Factory>
     static result_of_t<Factory(shape_type)>
       share_future(executor_type& ex, Future& fut,
                    Factory factory,
